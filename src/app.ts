@@ -11,7 +11,7 @@ dotenv.config();
 
 // Initialize Express App
 const app: Application = express();
-const port: number = parseInt(process.env.PORT || '4001', 10);
+const port: number = parseInt(process.env.PORT || '4000', 10);
 
 // Create an HTTP server and bind Socket.io to it
 const server = http.createServer(app);
@@ -38,3 +38,4 @@ socketInit(io);
 server.listen(port, () => {
   console.log(`App running on port ${port}`);
 });
+
