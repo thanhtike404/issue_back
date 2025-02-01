@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId], map: "accounts_user_id_fkey")
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "sessions_user_id_fkey")
+  @@map("sessions")
+}
+
+
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String?         @unique
+  emailVerified  DateTime?       @map("email_verified")
+  image          String?
+  role           Int             @default(0) @db.TinyInt
+  password       String?
+  accounts       Account[]
+  assignedIssues Issue[]         @relation("UserAssignedIssues")
+  issues         Issue[]         @relation("UserIssues")
+  sessions       Session[]
+  notifications  Notification[]
+  issueCommands  IssueCommand[]  // Add this field to relate back to IssueCommand
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model Issue {
+  id               Int             @id @default(autoincrement())
+  title            String          @db.VarChar(255)
+  description      String          @db.VarChar(255)
+  status           IssueStatus     @default(OPEN)
+  priority         IssuePriority   @default(low)
+  assignedDate     DateTime?
+  deadlineDate     DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  userId           String
+  assignedToUserId String?         @db.VarChar(255)
+  assignedToUser   User?           @relation("UserAssignedIssues", fields: [assignedToUserId], references: [id])
+  user             User            @relation("UserIssues", fields: [userId], references: [id])
+  notifications    Notification[]
+  issueCommands    IssueCommand[]
+  issueImages      IssueImage[]    // New relation for storing images
+
+  @@index([userId])
+  @@index([assignedToUserId], map: "issues_assignedToUserId_fkey")
+  @@map("issues")
+}
+
+model IssueImage {
+  id       Int    @id @default(autoincrement())
+  issueId  Int
+  imageUrl String @db.Text
+  issue    Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+  @@map("issue_images")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String   @db.VarChar(255)
+  type      String
+  createdAt DateTime @default(now())
+  userId    String
+  issueId   Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([issueId])
+  @@map("notifications")
+}
+model IssueCommand {
+  id          Int      @id @default(autoincrement())
+  issueId     Int      @map("issue_id")
+  userId      String   @map("user_id")
+  timestamp   DateTime @default(now())
+  text        String   @db.Text
+  likes       Int      @default(0)
+  replies     Json     @default("[]")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([issueId], map: "issue_commands_issue_id_fkey")
+  @@index([userId], map: "issue_commands_user_id_fkey")
+  @@map("issue_commands")
+}
+
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum IssuePriority {
+  high
+  medium
+  low
+  lowest
+}
