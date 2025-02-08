@@ -13,15 +13,15 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 // Initialize Express App
 const app = (0, express_1.default)();
-const port = parseInt(process.env.PORT || '4001', 10);
+const port = parseInt(process.env.PORT || '4000', 10);
 // Create an HTTP server and bind Socket.io to it
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.default.Server(server, {
     // You can pass options here, like CORS settings
     cors: {
-        origin: '*', // Replace with your front-end URL in production
+        origin: 'https://issue-tracker-six-mu.vercel.app', // Allow only your front-end to connect
         methods: ['GET', 'POST'],
-    },
+    }
 });
 // Middleware
 app.use((0, cors_1.default)());
