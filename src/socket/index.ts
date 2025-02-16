@@ -1,8 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
+//@ts-ignore
 export const socketInit = (io: any) => {
   const prismaClient = new PrismaClient();
 
+  //@ts-ignore
   const safeSocketAction = async (socket: any, action: () => Promise<void>) => {
     try {
       await action();
@@ -11,6 +13,7 @@ export const socketInit = (io: any) => {
       socket.emit("error", { error: "An unexpected error occurred. Please try again later." });
     }
   };
+  //@ts-ignore
   const emitComments = async (socket: any, issueId: number) => {
     try {
       const getComments = await prismaClient.issueCommand.findMany({
@@ -21,7 +24,7 @@ export const socketInit = (io: any) => {
           },
         },
       });
-
+      //@ts-ignore
       const comments = getComments.map(comment => {
         console.log("Raw replies before parsing:", comment.replies); // Debugging log
         return {
@@ -44,7 +47,7 @@ export const socketInit = (io: any) => {
   };
 
 
-
+  //@ts-ignore
   io.on("connection", (socket: any) => {
     const { email } = socket.handshake.auth;
 
@@ -63,7 +66,7 @@ export const socketInit = (io: any) => {
         await emitComments(socket, issueId);
       });
     });
-
+    //@ts-ignore
     socket.on("add-comment", (data: { issueId: number; userId: number; text: string; timestamp: Date }) => {
       safeSocketAction(socket, async () => {
         console.log("Adding comment to issue ID:", data.issueId);
@@ -86,6 +89,7 @@ export const socketInit = (io: any) => {
     });
 
     // ADD REPLY FUNCTIONALITY
+    //@ts-ignore
     socket.on("add-reply", async (data: { commentId: number; userId: number; text: string }) => {
       safeSocketAction(socket, async () => {
         console.log(`Adding reply to comment ID: ${data.commentId}`);

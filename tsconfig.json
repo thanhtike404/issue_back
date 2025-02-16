@@ -2,10 +2,22 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
-    "module": "CommonJS",
+    "module": "commonjs",
+    "target": "es6",
     "esModuleInterop": true,
-    "target": "ES6",
-    "skipLibCheck": true
-  }
+    "skipDefaultLibCheck": true,
+    "strict": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "dist",
+    "prisma",
+    "tests",
+    "scripts"
+  ]
 }

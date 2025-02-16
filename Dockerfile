@@ -1,27 +1,44 @@
-# Use an official Node.js runtime as the base image
-FROM node:18
+# -------- STAGE 1: Build Stage --------
+    FROM node:18-alpine AS builder
 
-# Set the working directory in the container
-WORKDIR /app
+    # Install OpenSSL and other dependencies
+    RUN apk add --no-cache openssl
+    
+    # Set working directory
+    WORKDIR /app
+    
+    # Install dependencies
+    COPY package*.json ./
+    RUN npm ci
+    
+    # Copy the rest of the code
+    COPY . .
+    
+    # Generate Prisma Client
+    RUN npx prisma generate
+    
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application code
-COPY . .
-
-# Build the TypeScript project
-RUN npm run build
-
-#prisma Generate
-RUN npx prisma generate
-
-# Expose the port your app runs on
-EXPOSE 3000
-
-# Command to run the application
-CMD ["npm", "start"]
-
+    
+    # Build TypeScript project
+    RUN npm run build
+    
+    # -------- STAGE 2: Production Stage --------
+    FROM node:18-alpine AS runner
+    
+    # Install OpenSSL and other dependencies
+    RUN apk add --no-cache openssl
+    
+    # Set working directory
+    WORKDIR /app
+    
+    # Copy only necessary files from builder stage
+    COPY --from=builder /app/node_modules ./node_modules
+    COPY --from=builder /app/dist ./dist
+    COPY --from=builder /app/prisma ./prisma
+    COPY --from=builder /app/package*.json ./
+    
+    # Expose the port
+    EXPOSE 3000
+    
+    # Run the application
+    CMD ["node", "dist/app.js"]
