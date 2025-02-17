@@ -18,8 +18,8 @@ const server = http.createServer(app);
 const io = new socketIo.Server(server, {
   // You can pass options here, like CORS settings
   cors: {
-    // origin: 'https://issue-tracker-six-mu.vercel.app', // Allow only your front-end to connect
-    origin: '*', // Allow only your front-end to connect,
+    // origin: '', // Allow only your front-end to connect
+    origin: 'https://issue-tracker-six-mu.vercel.app', // Allow only your front-end to connect,
     methods: ['GET', 'POST'],
 
   }
