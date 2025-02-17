@@ -25,7 +25,7 @@ pipeline {
                 def dockerCmd = "docker run -d -p 4000:4000 thanhtikezaw404/issue-back:1.6"
                  sshagent(['ec2-server-key']) {
                     
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@13.250.57.111 ${dockerCmd}"
+                    sh "ssh -o StrictHostKeyChecking=no ubuntu@ec2-13-250-57-111.ap-southeast-1.compute.amazonaws.com ${dockerCmd}"
                     }
                }
             }
