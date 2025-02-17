@@ -2,22 +2,31 @@ pipeline {
     agent any
 
     stages {
-        stage('test'){
-
-        }
-        stage('Build Docker Image') {
+        stage('Test') {
             steps {
-              
+                echo "Running tests..."
+                // Add test commands here if necessary
             }
         }
-        stage('Ec2 Deployment'){
-            steps{
-               script{
-                def dockerCmd = "docker run -d -p 4000:4000 thanhtikezaw404/issue-back:1.6 ${dockerCmd}"
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "Building Docker image..."
+                    // Add Docker build commands here
+                    // Example: sh 'docker build -t my-image:latest .'
+                }
+            }
+        }
+
+                stage('Ec2 Deployment'){
+            steps {
+               script {
+                def dockerCmd = "docker run -d -p 4000:4000 thanhtikezaw404/issue-back:1.6"
                  sshagent(['ec2-server-key']) {
                     
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@13.250.57.111'
-}
+                    sh "ssh -o StrictHostKeyChecking=no ubuntu@13.250.57.111 ${dockerCmd}"
+                    }
                }
             }
         }
