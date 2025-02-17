@@ -30,7 +30,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.get('/', (req: any, res: any) => {
   return res.json({
-    msg: 'hello'
+    msg: 'hello fucking new world'
   })
 })
 socketInit(io);
