@@ -4,7 +4,7 @@ pipeline {
     environment {
         EC2_USER = "ubuntu"
         EC2_HOST = "13.250.57.111"
-        IMAGE_NAME = "thanhtikezaw404/issue-back"
+        IMAGE_NAME = "issue-back"
         IMAGE_TAG = "1.7"  // Change if needed
         CONTAINER_NAME = "issue-back"
         PORT = "4000"
