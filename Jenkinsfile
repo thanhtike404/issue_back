@@ -5,7 +5,7 @@ pipeline {
         EC2_USER = "ubuntu"
         EC2_HOST = "13.250.57.111"
         IMAGE_NAME = "issue-back"
-        IMAGE_TAG = "1.9"  // Change if needed
+        IMAGE_TAG = "1.9.1"  // Change if needed
         CONTAINER_NAME = "issue-back"
         PORT = "4000"
         DOCKER_HUB_USER = "thanhtikezaw404"
