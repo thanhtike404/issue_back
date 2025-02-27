@@ -18,30 +18,30 @@ pipeline {
             }
         }
 
-        stage('Build & Push Docker Image') {
-            steps {
-                script {
-                    echo "Building Docker image..."
-                    sh """
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                    """
-                }
-            }
-        }
+        // stage('Build & Push Docker Image') {
+        //     steps {
+        //         script {
+        //             echo "Building Docker image..."
+        //             sh """
+        //                 // docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+        //                 // docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+        //             """
+        //         }
+        //     }
+        // }
 
-        stage("Push to Docker Hub") {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DK_NAME', passwordVariable: 'DK_PASSWORD')]) {
-                    echo "======== Logging in to Docker Hub ========"
-                    sh """
-                        echo $DK_PASSWORD | docker login -u $DK_NAME --password-stdin
-                        echo "======== Login Successful ========"
-                        docker push $DK_NAME/${IMAGE_NAME}:${IMAGE_TAG}
-                    """
-                }
-            }
-        }
+        // stage("Push to Docker Hub") {
+        //     steps {
+        //         withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DK_NAME', passwordVariable: 'DK_PASSWORD')]) {
+        //             echo "======== Logging in to Docker Hub ========"
+        //             sh """
+        //                 echo $DK_PASSWORD | docker login -u $DK_NAME --password-stdin
+        //                 echo "======== Login Successful ========"
+        //                 docker push $DK_NAME/${IMAGE_NAME}:${IMAGE_TAG}
+        //             """
+        //         }
+        //     }
+        // }
 
         stage('Deploy to EC2') {
             steps {
