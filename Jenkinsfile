@@ -3,9 +3,9 @@ pipeline {
     
     environment {
         EC2_USER = "ubuntu"
-        EC2_HOST = "13.250.57.111"
+        EC2_HOST = "165.154.247.231"
         IMAGE_NAME = "issue-back"
-        IMAGE_TAG = "1.9.1"  // Change if needed
+        IMAGE_TAG = "1.9.2"  // Change if needed
         CONTAINER_NAME = "issue-back"
         PORT = "4000"
         DOCKER_HUB_USER = "thanhtikezaw404"
@@ -46,19 +46,13 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 script {
-                    sshagent(['ec2-server-key']) {
+                    sshagent(['sc_pv_key']) {
                         sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'EOF'
                         
-                        echo "Stopping existing container if running..."
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
+                        cd /home/ubuntu/issue_tracker_backend 
 
-                        echo "Pulling latest Docker image..."
-                        docker pull ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-
-                        echo "Running new container..."
-                        docker run -d -p ${PORT}:${PORT} --name ${CONTAINER_NAME} ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                        git pull origin main
 
                         echo "Deployment completed!"
 EOF
