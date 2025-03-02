@@ -11,8 +11,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.socketInit = void 0;
 const client_1 = require("@prisma/client");
+//@ts-ignore
 const socketInit = (io) => {
     const prismaClient = new client_1.PrismaClient();
+    //@ts-ignore
     const safeSocketAction = (socket, action) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             yield action();
@@ -22,6 +24,7 @@ const socketInit = (io) => {
             socket.emit("error", { error: "An unexpected error occurred. Please try again later." });
         }
     });
+    //@ts-ignore
     const emitComments = (socket, issueId) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const getComments = yield prismaClient.issueCommand.findMany({
@@ -32,6 +35,7 @@ const socketInit = (io) => {
                     },
                 },
             });
+            //@ts-ignore
             const comments = getComments.map(comment => {
                 console.log("Raw replies before parsing:", comment.replies); // Debugging log
                 return Object.assign(Object.assign({}, comment), { replies: Array.isArray(comment.replies)
@@ -49,6 +53,7 @@ const socketInit = (io) => {
             socket.emit("fetch-comments-error", { error: "Failed to fetch comments. Please try again later." });
         }
     });
+    //@ts-ignore
     io.on("connection", (socket) => {
         const { email } = socket.handshake.auth;
         if (!email) {
@@ -64,6 +69,7 @@ const socketInit = (io) => {
                 yield emitComments(socket, issueId);
             }));
         });
+        //@ts-ignore
         socket.on("add-comment", (data) => {
             safeSocketAction(socket, () => __awaiter(void 0, void 0, void 0, function* () {
                 console.log("Adding comment to issue ID:", data.issueId);
@@ -82,6 +88,7 @@ const socketInit = (io) => {
             }));
         });
         // ADD REPLY FUNCTIONALITY
+        //@ts-ignore
         socket.on("add-reply", (data) => __awaiter(void 0, void 0, void 0, function* () {
             safeSocketAction(socket, () => __awaiter(void 0, void 0, void 0, function* () {
                 console.log(`Adding reply to comment ID: ${data.commentId}`);

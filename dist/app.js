@@ -19,7 +19,7 @@ const server = http_1.default.createServer(app);
 const io = new socket_io_1.default.Server(server, {
     // You can pass options here, like CORS settings
     cors: {
-        // origin: 'https://issue-tracker-six-mu.vercel.app', // Allow only your front-end to connect
+        // origin: '', // Allow only your front-end to connect
         origin: '*', // Allow only your front-end to connect,
         methods: ['GET', 'POST'],
     }
@@ -30,7 +30,7 @@ app.use(body_parser_1.default.json());
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.get('/', (req, res) => {
     return res.json({
-        msg: 'hello'
+        msg: 'hello fucking new world'
     });
 });
 (0, socket_1.socketInit)(io);
