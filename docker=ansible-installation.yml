@@ -1,0 +1,233 @@
+---
+- name: Install Docker, Docker Compose, and Deploy Jenkins
+  hosts: 149.28.132.255
+  become: true
+  vars:
+    docker_compose_version: "1.29.2"
+    jenkins_container_name: "jenkins"
+    jenkins_home: "/var/jenkins_home"
+    jenkins_port: 8080
+
+  tasks:
+    # ✅ Install required dependencies
+    # - name: Clean package cache and remove unnecessary packages
+    #   become: true
+    #   block:
+    # - name: Fix broken packages
+    #   command: dpkg --configure -a
+
+    # - name: Attempt to fix missing dependencies
+    #   command: apt-get install -f -y
+
+    # - name: Remove unused packages and dependencies
+    #   apt:
+    #     autoremove: yes
+    #     autoclean: yes
+
+    # - name: Clear package cache
+    #   command: apt-get clean
+
+    # ✅ Install required dependencies
+    - name: Install dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    # ✅ Add Docker GPG key
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+- name: Install Docker, Docker Compose, and Deploy Jenkins
+  hosts: 149.28.132.255
+  become: true
+  vars:
+    docker_compose_version: "1.29.2"
+    jenkins_container_name: "jenkins"
+    jenkins_home: "/var/jenkins_home"
+    jenkins_port: 8080
+
+  tasks:
+    # ✅ Install required dependencies
+    - name: Install dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    # ✅ Add Docker GPG key
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    # ✅ Add Docker repository
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    # ✅ Install Docker
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    # ✅ Start and enable Docker service
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # ✅ Add the current user to the Docker group
+    - name: Add user to the Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    # ✅ Install Docker Compose
+    - name: Set Docker Compose architecture
+      set_fact:
+        compose_arch: >-
+          {%- if ansible_architecture == "x86_64" -%}
+            linux-x86_64
+          {%- elif ansible_architecture == "aarch64" -%}
+            linux-aarch64
+          {%- else -%}
+            linux-x86_64
+          {%- endif -%}
+
+    - name: Download Docker Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ compose_arch }}"
+        dest: "/usr/local/bin/docker-compose"
+        mode: "u+x,g+x"
+
+    # ✅ Ensure Jenkins home directory exists with correct permissions
+    - name: Ensure Jenkins home directory has correct permissions
+      file:
+        path: "{{ jenkins_home }}"
+        state: directory
+        owner: "1000"
+        group: "1000"
+        mode: "0777"
+
+    # ✅ Deploy Jenkins container
+    - name: Run Jenkins container
+      docker_container:
+        name: "{{ jenkins_container_name }}"
+        image: "jenkins/jenkins:lts"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ jenkins_port }}:8080"
+        volumes:
+          - "{{ jenkins_home }}:/var/jenkins_home"
+          - "/var/run/docker.sock:/var/run/docker.sock"
+
+    # ✅ Wait for Jenkins to initialize
+    - name: Wait for Jenkins to create the admin password file
+      shell: "while [ ! -f {{ jenkins_home }}/secrets/initialAdminPassword ]; do sleep 10; done"
+      args:
+        executable: /bin/bash
+      register: wait_result
+      changed_when: false
+
+    # ✅ Retrieve and print Jenkins admin password
+    - name: Get Jenkins admin password
+      command: "cat {{ jenkins_home }}/secrets/initialAdminPassword"
+      register: jenkins_password
+      changed_when: false
+
+    - debug:
+        msg: "Jenkins Admin Password: {{ jenkins_password.stdout }}"
+
+    # ✅ Add Docker repository
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    # ✅ Install Docker
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    # ✅ Start and enable Docker service
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # ✅ Add the current user to the Docker group
+    - name: Add user to the Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    # ✅ Install Docker Compose
+    - name: Set Docker Compose architecture
+      set_fact:
+        compose_arch: >-
+          {%- if ansible_architecture == "x86_64" -%}
+            linux-x86_64
+          {%- elif ansible_architecture == "aarch64" -%}
+            linux-aarch64
+          {%- else -%}
+            linux-x86_64
+          {%- endif -%}
+
+    - name: Download Docker Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ compose_arch }}"
+        dest: "/usr/local/bin/docker-compose"
+        mode: "u+x,g+x"
+
+    # ✅ Deploy Jenkins container
+    - name: Run Jenkins container
+      docker_container:
+        name: "{{ jenkins_container_name }}"
+        image: "jenkins/jenkins:lts"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ jenkins_port }}:8080"
+        volumes:
+          - "{{ jenkins_home }}:/var/jenkins_home"
+          - "/var/run/docker.sock:/var/run/docker.sock"
+        # ✅ Install Docker inside Jenkins container
+    # inside the jenkins container run this
+    #curl https://get.docker.com/ > dockerinstall && chmod 777 dockerinstall && ./dockerinstall
+    #chmod 666 /var/run/docker.sock
+
+    # ✅ Wait for Jenkins to initialize
+    - name: Wait for Jenkins to create the admin password file
+      shell: "while [ ! -f {{ jenkins_home }}/secrets/initialAdminPassword ]; do sleep 10; done"
+      args:
+        executable: /bin/bash
+      register: wait_result
+      changed_when: false
+
+    # ✅ Retrieve and print Jenkins admin password
+    - name: Get Jenkins admin password
+      command: "cat {{ jenkins_home }}/secrets/initialAdminPassword"
+      register: jenkins_password
+      changed_when: false
+
+    - debug:
+        msg: "Jenkins Admin Password: {{ jenkins_password.stdout }}"
