@@ -47,6 +47,7 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
+                sh "echo 'Deploying to EC2..."
 //                 script {
 //                     sshagent(['sc_pv_key']) {
 //                         sh """
@@ -61,7 +62,6 @@ pipeline {
 //                         """
 //                     }
 //                 }
-sh "echo 'Deploying to EC2...'"
             }
         }
     }
