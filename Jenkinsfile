@@ -32,6 +32,7 @@ pipeline {
 
         stage("Push to Docker Hub") {
             steps {
+                echo "Pushing to Docker Hub..."
                 // withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DK_NAME', passwordVariable: 'DK_PASSWORD')]) {
                 //     echo "======== Logging in to Docker Hub ========"
                 //     sh """
@@ -40,10 +41,7 @@ pipeline {
                 //         docker push $DK_NAME/${IMAGE_NAME}:${IMAGE_TAG}
                 //     """
                 // }
-                script {
-                    echo "Pushing Docker image to Docker Hub..."
-                    // sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                }
+
                 }
         }
 
