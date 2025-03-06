@@ -1,6 +1,6 @@
 ---
 - name: Install Docker, Docker Compose, and Deploy Jenkins
-  hosts: 155.138.203.169
+  hosts: 66.42.49.216
   become: true
   vars:
     docker_compose_version: "1.29.2"
@@ -43,7 +43,7 @@
         url: https://download.docker.com/linux/ubuntu/gpg
         state: present
 - name: Install Docker, Docker Compose, and Deploy Jenkins
-  hosts: 155.138.203.169
+  hosts: 66.42.49.216
   become: true
   vars:
     docker_compose_version: "1.29.2"

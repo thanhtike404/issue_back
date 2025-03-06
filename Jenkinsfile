@@ -40,8 +40,11 @@ pipeline {
                 //         docker push $DK_NAME/${IMAGE_NAME}:${IMAGE_TAG}
                 //     """
                 // }
-                sh "push to docker"
-            }
+                script {
+                    echo "Pushing Docker image to Docker Hub..."
+                    // sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                }
+                }
         }
 
 

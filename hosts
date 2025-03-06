@@ -1,5 +1,5 @@
 [vps]
-155.138.203.169
+66.42.49.216
 [vps:vars]
 ansible_ssh_private_key_file=~/.ssh/id_rsa.pub
 ansible_user=root
