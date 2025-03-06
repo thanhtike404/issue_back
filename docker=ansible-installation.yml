@@ -1,6 +1,6 @@
 ---
 - name: Install Docker, Docker Compose, and Deploy Jenkins
-  hosts: 149.28.132.255
+  hosts: 155.138.203.169
   become: true
   vars:
     docker_compose_version: "1.29.2"
@@ -43,7 +43,7 @@
         url: https://download.docker.com/linux/ubuntu/gpg
         state: present
 - name: Install Docker, Docker Compose, and Deploy Jenkins
-  hosts: 149.28.132.255
+  hosts: 155.138.203.169
   become: true
   vars:
     docker_compose_version: "1.29.2"
@@ -212,8 +212,8 @@
           - "/var/run/docker.sock:/var/run/docker.sock"
         # ✅ Install Docker inside Jenkins container
     # inside the jenkins container run this
-    #curl https://get.docker.com/ > dockerinstall && chmod 777 dockerinstall && ./dockerinstall
-    #chmod 666 /var/run/docker.sock
+    # curl https://get.docker.com/ > dockerinstall && chmod 777 dockerinstall && ./dockerinstall
+    # chmod 666 /var/run/docker.sock
 
     # ✅ Wait for Jenkins to initialize
     - name: Wait for Jenkins to create the admin password file
