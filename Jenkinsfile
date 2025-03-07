@@ -50,7 +50,6 @@ pipeline {
         
         stage('Deploy to EC2') {
             steps {
-                sh "echo 'Deploying to EC2..."
                 script {
                     sshagent(['vultr_vps']) {
                         sh """
