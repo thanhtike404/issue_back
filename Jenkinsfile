@@ -53,6 +53,7 @@ pipeline {
                         sh """
                         ssh -o StrictHostKeyChecking=no ${VULTR_USER}@${VULTR_HOST} << 'EOF'
                           touch index.html
+                        echo "Deployed via Jenkins" > index.html
 EOF
                         """
                     }
