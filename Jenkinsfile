@@ -2,8 +2,8 @@ pipeline {
     agent any
     
     environment {
-        VULTR_USER = "root"
-        VULTR_HOST = "45.77.35.66"
+        VULTR_USER = "ec2-user"
+        VULTR_HOST = "3.1.8.130"
         IMAGE_NAME = "issue-back"
         IMAGE_TAG = "1.9.2"  // Change if needed
         CONTAINER_NAME = "issue-back"
