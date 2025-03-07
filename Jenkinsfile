@@ -32,14 +32,17 @@ pipeline {
 
         stage("Push to Docker Hub") {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DK_NAME', passwordVariable: 'DK_PASSWORD')]) {
-                    echo "======== Logging in to Docker Hub ========"
-                    // sh """
-                    //     echo $DK_PASSWORD | docker login -u $DK_NAME --password-stdin
-                    //     echo "======== Login Successful ========"
-                    //     docker push $DK_NAME/${IMAGE_NAME}:${IMAGE_TAG}
-                    // """
-                }
+                script {
+                    echo "Pushing to Docker Hub..." }
+                    // withCredentials([usernamePassword(credential
+                // withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DK_NAME', passwordVariable: 'DK_PASSWORD')]) {
+                //     echo "======== Logging in to Docker Hub ========"
+                //     // sh """
+                //     //     echo $DK_PASSWORD | docker login -u $DK_NAME --password-stdin
+                //     //     echo "======== Login Successful ========"
+                //     //     docker push $DK_NAME/${IMAGE_NAME}:${IMAGE_TAG}
+                //     // """
+                // }
             
             }
         }
