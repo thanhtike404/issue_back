@@ -127,10 +127,6 @@ io.on("connection", (socket) => {
     }
   });
 
-
-
-
-
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${user.name}`);
   });
@@ -148,3 +144,12 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+// notification for issue creation
+// notification for approved issue
+// noitication for rejected issue
+// notification for issue assignment
+// notification for issue status change
+// notification for comment on issue
+// notification for issue mention  

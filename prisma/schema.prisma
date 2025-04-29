@@ -122,7 +122,7 @@ model Notification {
   receiver  User     @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
   sender    User     @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
   issue     Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
-
+  user       User     @relation("UserNotifications", fields: [userId], references: [id])
   // Indexes
   @@index([userId])
   @@index([senderId])

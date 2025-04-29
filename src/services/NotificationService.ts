@@ -10,6 +10,7 @@ type notificationType = {
     issueId: number | null;
     createdAt: Date;
     read: boolean;
+
 };
 
 export default class NotificationService {
@@ -29,38 +30,89 @@ export default class NotificationService {
         createdAt = new Date(),
         read = false
     }: notificationType) {
+        const shouldNotifyAdmins = [
+            'issue_creation',
+            'issue_approved',
+            'issue_rejected',
+            'issue_status_change'
+        ].includes(type);
 
-        const notification = await this.prisma.notification.create({
-            data: {
-                title,
-                message,
-                type,
-                userId,
-                senderId,
-                issueId,
-                createdAt,
-                read
-            },
-            include: {
-                issue: {
-                    select: {
-                        id: true,
-                        title: true,
-                        status: true
-                    }
+        const shouldNotifyAssignee = [
+            'issue_assignment',
+            'issue_mention',
+            'comment'
+        ].includes(type);
+
+        // Case 1: Notify specific user (e.g., assignee)
+        if (shouldNotifyAssignee && userId) {
+            const notification = await this.prisma.notification.create({
+                data: {
+                    title,
+                    message,
+                    type,
+                    userId,
+                    senderId,
+                    issueId,
+                    createdAt,
+                    read
+                },
+                include: {
+                    issue: { select: { id: true, title: true, status: true } },
+                    receiver: { select: { id: true, name: true } },
+                    sender: { select: { id: true, name: true } }
                 }
-            }
-        });
-        // Send real-time notification
-        this.io.to(`user-${userId}`).emit('new-notification', notification);
+            });
 
-        // TODO: Implement email notification if needed
-        // if (sendEmail) {
-        //     // await this.sendEmailNotification(userId, title, message);
-        // }
+            this.io.to(`user-${userId}`).emit('new-notification', notification);
+            return notification;
+        }
 
-        return notification;
+        // Case 2: Notify all admins and devs
+        if (shouldNotifyAdmins) {
+            const adminsAndDevs = await this.prisma.user.findMany({
+                where: { role: { in: [1, 2] } },
+                select: { id: true }
+            });
+
+            const notifications = await Promise.all(
+                adminsAndDevs.map(({ id }) =>
+                    this.prisma.notification.create({
+                        data: {
+                            title,
+                            message,
+                            type,
+                            userId: id,
+                            senderId,
+                            issueId,
+                            createdAt: new Date(),
+                            read
+                        },
+                        include: {
+                            issue: { select: { id: true, title: true, status: true } },
+                            receiver: { select: { id: true, name: true } },
+                            sender: { select: { id: true, name: true } }
+                        }
+                    })
+                )
+            );
+
+            // Emit to each individual user socket
+            notifications.forEach((notification) => {
+                try {
+                    this.io.to(`user-${notification.userId}`).emit('new-notification', notification);
+                } catch (err) {
+                    console.error(`Error sending notification to user-${notification.userId}:`, err);
+                }
+            });
+
+            return notifications;
+        }
+
+
+        // No valid target
+        throw new Error("No valid userId provided and type does not require broadcasting.");
     }
+
 
     async getUserNotifications(userId: string) {
         return this.prisma.notification.findMany({
