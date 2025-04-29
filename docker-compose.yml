@@ -1,27 +1,54 @@
 version: '3.8'
-
 services:
   db:
-    image: postgres:15-alpine
+    container_name: postgres
+    image: postgres:16.8-alpine3.20
     restart: always
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secret
-      POSTGRES_DB: issue_tracker
+      POSTGRES_DB: issue-back
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d issue-back"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  init-db:
+    image: node:18-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: "postgresql://admin:secret@postgres:5432/issue-back"
+    command: ["sh", "-c", "npx prisma generate && npx prisma db push"]
+    networks:
+      - app-network
 
   app:
     build: .
     depends_on:
-      - db
+      - init-db
     environment:
-      DATABASE_URL: "postgresql://admin:secret@localhost:5432/issue_tracker"
+      DATABASE_URL: "postgresql://admin:secret@postgres:5432/issue-back"
     ports:
       - "4000:4000"
     command: ["node", "dist/app.js"]
+    networks:
+      - app-network
 
 volumes:
   pgdata:
+
+networks:
+  app-network:
+    driver: bridge

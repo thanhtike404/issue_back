@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+
 }
 
 model Account {
@@ -50,7 +51,13 @@ model User {
   assignedIssues Issue[]         @relation("UserAssignedIssues")
   issues         Issue[]         @relation("UserIssues")
   sessions       Session[]
-  notifications  Notification[]
+  
+  // Received notifications (as receiver)
+  receivedNotifications Notification[] @relation("NotificationReceiver")
+  
+  // Sent notifications (as sender)
+  sentNotifications Notification[] @relation("NotificationSender")
+  
   issueCommands  IssueCommand[]
 
   @@map("users")
@@ -100,16 +107,27 @@ model IssueImage {
 
 model Notification {
   id        Int      @id @default(autoincrement())
+  title     String   // Added title for better context
   message   String
-  type      String
+  type      String   // e.g., "assignment", "mention", "system"
+  read      Boolean  @default(false) // Mark as read status
   createdAt DateTime @default(now())
-  userId    String
-  issueId   Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  
+  // Foreign keys
+  userId    String   // receiver ID
+  senderId  String   // sender ID
+  issueId   Int?
 
+  // Relations
+  receiver  User     @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
+  sender    User     @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  issue     Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  // Indexes
   @@index([userId])
+  @@index([senderId])
   @@index([issueId])
+  @@index([read])    // Added index for frequently queried field
   @@map("notifications")
 }
 
