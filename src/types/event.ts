@@ -4,3 +4,15 @@ export interface ClientToServerEvents {
     'mark-as-read': (notificationId: number, callback: (response: { success: boolean; error?: string }) => void) => void;
     'mark-all-read': (callback: (response: { success: boolean; error?: string }) => void) => void;
 }
+
+export interface ServerToClientEvents {
+    'new-notification': (notification: any) => void;
+}
+
+
+
+export interface InterServerEvents { }
+export interface SocketData {
+    user: { id: string; name: string; role: number };
+}
+

@@ -37,10 +37,12 @@ export default class NotificationService {
             'issue_status_change'
         ].includes(type);
 
+
         const shouldNotifyAssignee = [
             'issue_assignment',
             'issue_mention',
-            'comment'
+            'comment',
+            'role_change'
         ].includes(type);
 
         // Case 1: Notify specific user (e.g., assignee)
