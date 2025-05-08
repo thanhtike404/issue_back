@@ -24,11 +24,44 @@ const server = http_1.default.createServer(app);
 const prisma = new client_1.PrismaClient();
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Your frontend URL
-        methods: ["GET", "POST"],
+        origin: "https://issue-tracker-six-mu.vercel.app", // Your frontend URL
+        methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
     }
 });
+// Test the database connection
+function testDatabaseConnection() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = yield prisma.user.findFirst(); // Adjust with any model you have in your schema
+            console.log("Database connection is successful. Test user:", user);
+        }
+        catch (error) {
+            console.error("Error connecting to the database:", error);
+        }
+    });
+}
+testDatabaseConnection();
+// Log Prisma queries with proper typing
+//@ts-ignore
+prisma.$on('query', (event) => {
+    console.log('Query:', event.query);
+    console.log('Params:', event.params);
+    console.log('Duration:', event.duration);
+});
+// Notifications route
+app.get("/notifications", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const notifications = yield prisma.notification.findMany({
+            orderBy: { createdAt: "desc" }
+        });
+        res.json(notifications);
+    }
+    catch (error) {
+        console.error("Error fetching notifications:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}));
 // Initialize services
 const notificationService = new NotificationService_1.default(io);
 const socketAuthService = new SocketAuthService_1.SocketAuthService(prisma);
@@ -44,7 +77,6 @@ io.on("connection", (socket) => {
     // Issue-related notifications
     socket.on("issue-created", (data) => socketEventHandler.handleIssueCreationNotification(data));
     socket.on("issue-approved", (data) => socketEventHandler.handleIssueApprovalNotification(data));
-    // Add other issue-related events...
     socket.on("disconnect", () => socketEventHandler.handleDisconnect(socket));
 });
 // Prisma graceful shutdown
@@ -54,7 +86,7 @@ process.on('SIGINT', () => __awaiter(void 0, void 0, void 0, function* () {
     process.exit(0);
 }));
 // Start Server
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 4000;
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });

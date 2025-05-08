@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { Server } from "socket.io";
 import { SocketAuthService } from "./services/SocketAuthService";
 import { SocketEventHandler } from "./services/SocketEventHandler";
@@ -17,6 +17,27 @@ const io = new Server(server, {
   }
 });
 
+// Test the database connection
+async function testDatabaseConnection() {
+  try {
+    const user = await prisma.user.findFirst(); // Adjust with any model you have in your schema
+    console.log("Database connection is successful. Test user:", user);
+  } catch (error) {
+    console.error("Error connecting to the database:", error);
+  }
+}
+
+testDatabaseConnection();
+
+// Log Prisma queries with proper typing
+//@ts-ignore
+prisma.$on('query', (event: Prisma.QueryEvent) => {
+  console.log('Query:', event.query);
+  console.log('Params:', event.params);
+  console.log('Duration:', event.duration);
+});
+
+// Notifications route
 app.get("/notifications", async (req, res) => {
   try {
     const notifications = await prisma.notification.findMany({
@@ -37,10 +58,8 @@ const socketEventHandler = new SocketEventHandler(notificationService);
 // Socket.IO Authentication
 io.use((socket, next) => socketAuthService.authenticate(socket, next));
 
-
 io.on("connection", (socket) => {
   socketEventHandler.handleConnection(socket);
-
 
   socket.on("get-notifications", (callback) =>
     socketEventHandler.handleGetNotifications(socket, callback));
@@ -60,8 +79,6 @@ io.on("connection", (socket) => {
 
   socket.on("issue-approved", (data) =>
     socketEventHandler.handleIssueApprovalNotification(data));
-
-  // Add other issue-related events...
 
   socket.on("disconnect", () =>
     socketEventHandler.handleDisconnect(socket));
