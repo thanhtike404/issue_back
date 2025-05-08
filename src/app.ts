@@ -17,6 +17,18 @@ const io = new Server(server, {
   }
 });
 
+app.get("/notifications", async (req, res) => {
+  try {
+    const notifications = await prisma.notification.findMany({
+      orderBy: { createdAt: "desc" }
+    });
+    res.json(notifications);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Initialize services
 const notificationService = new NotificationService(io);
 const socketAuthService = new SocketAuthService(prisma);
