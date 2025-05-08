@@ -11,8 +11,8 @@ const server = http.createServer(app);
 const prisma = new PrismaClient();
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Your frontend URL
-    methods: ["GET", "POST"],
+    origin: "https://issue-tracker-six-mu.vercel.app", // Your frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
 });
