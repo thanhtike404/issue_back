@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-
 }
 
 model Account {
@@ -40,25 +39,20 @@ model Session {
 }
 
 model User {
-  id             String          @id @default(cuid())
-  name           String?
-  email          String?         @unique
-  emailVerified  DateTime?
-  image          String?
-  role           Int             @default(0)
-  password       String?
-  accounts       Account[]
-  assignedIssues Issue[]         @relation("UserAssignedIssues")
-  issues         Issue[]         @relation("UserIssues")
-  sessions       Session[]
-  
-  // Received notifications (as receiver)
+  id                    String         @id @default(cuid())
+  name                  String?
+  email                 String?        @unique
+  emailVerified         DateTime?
+  image                 String?
+  role                  Int            @default(0)
+  password              String?
+  accounts              Account[]
+  issueCommands         IssueCommand[]
+  assignedIssues        Issue[]        @relation("UserAssignedIssues")
+  issues                Issue[]        @relation("UserIssues")
+  sentNotifications     Notification[] @relation("NotificationSender")
   receivedNotifications Notification[] @relation("NotificationReceiver")
-  
-  // Sent notifications (as sender)
-  sentNotifications Notification[] @relation("NotificationSender")
-  
-  issueCommands  IssueCommand[]
+  sessions              Session[]
 
   @@map("users")
 }
@@ -73,22 +67,22 @@ model VerificationToken {
 }
 
 model Issue {
-  id               Int             @id @default(autoincrement())
+  id               Int            @id @default(autoincrement())
   title            String
   description      String
-  status           IssueStatus     @default(OPEN)
-  priority         IssuePriority   @default(low)
+  status           IssueStatus    @default(OPEN)
+  priority         IssuePriority  @default(low)
   assignedDate     DateTime?
   deadlineDate     DateTime?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   userId           String
   assignedToUserId String?
-  assignedToUser   User?           @relation("UserAssignedIssues", fields: [assignedToUserId], references: [id])
-  user             User            @relation("UserIssues", fields: [userId], references: [id])
-  notifications    Notification[]
   issueCommands    IssueCommand[]
   issueImages      IssueImage[]
+  assignedToUser   User?          @relation("UserAssignedIssues", fields: [assignedToUserId], references: [id])
+  user             User           @relation("UserIssues", fields: [userId], references: [id])
+  notifications    Notification[]
 
   @@index([userId])
   @@index([assignedToUserId])
@@ -107,40 +101,35 @@ model IssueImage {
 
 model Notification {
   id        Int      @id @default(autoincrement())
-  title     String   // Added title for better context
   message   String
-  type      String   // e.g., "assignment", "mention", "system"
-  read      Boolean  @default(false) // Mark as read status
+  type      String
   createdAt DateTime @default(now())
-  
-  // Foreign keys
-  userId    String   // receiver ID
-  senderId  String   // sender ID
+  userId    String
   issueId   Int?
-
-  // Relations
-  receiver  User     @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
-  sender    User     @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  read      Boolean  @default(false)
+  senderId  String
+  title     String
   issue     Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  user       User     @relation("UserNotifications", fields: [userId], references: [id])
-  // Indexes
+  sender    User     @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver  User     @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([senderId])
   @@index([issueId])
-  @@index([read])    // Added index for frequently queried field
+  @@index([read])
   @@map("notifications")
 }
 
 model IssueCommand {
-  id          Int      @id @default(autoincrement())
-  issueId     Int
-  userId      String
-  timestamp   DateTime @default(now())
-  text        String
-  likes       Int      @default(0)
-  replies     Json     @default("[]")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  issueId   Int
+  userId    String
+  timestamp DateTime @default(now())
+  text      String
+  likes     Int      @default(0)
+  replies   Json     @default("[]")
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
   @@index([userId])

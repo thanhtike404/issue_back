@@ -9,7 +9,13 @@ import NotificationService from "./services/NotificationService";
 const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000", // Your frontend URL
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
 // Initialize services
 const notificationService = new NotificationService(io);
@@ -19,11 +25,11 @@ const socketEventHandler = new SocketEventHandler(notificationService);
 // Socket.IO Authentication
 io.use((socket, next) => socketAuthService.authenticate(socket, next));
 
-// Socket.IO Event Handling
+
 io.on("connection", (socket) => {
   socketEventHandler.handleConnection(socket);
 
-  // Notification events
+
   socket.on("get-notifications", (callback) =>
     socketEventHandler.handleGetNotifications(socket, callback));
 
@@ -33,8 +39,8 @@ io.on("connection", (socket) => {
   socket.on("mark-all-read", (callback) =>
     socketEventHandler.handleMarkAllAsRead(socket, callback));
 
-  // socket.on("send-admin-notification", (data) =>
-  //   socketEventHandler.handleAdminNotification(socket, data));
+  socket.on("send-admin-notification", (data) =>
+    socketEventHandler.handleAdminNotification(socket, data));
 
   // Issue-related notifications
   socket.on("issue-created", (data) =>

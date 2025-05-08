@@ -1,40 +1,60 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const body_parser_1 = __importDefault(require("body-parser"));
-const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
-const socket_io_1 = __importDefault(require("socket.io"));
-const socket_1 = require("./socket");
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-// Initialize Express App
+const client_1 = require("@prisma/client");
+const socket_io_1 = require("socket.io");
+const SocketAuthService_1 = require("./services/SocketAuthService");
+const SocketEventHandler_1 = require("./services/SocketEventHandler");
+const NotificationService_1 = __importDefault(require("./services/NotificationService"));
 const app = (0, express_1.default)();
-const port = parseInt(process.env.PORT || '4000', 10);
-// Create an HTTP server and bind Socket.io to it
 const server = http_1.default.createServer(app);
-const io = new socket_io_1.default.Server(server, {
-    // You can pass options here, like CORS settings
+const prisma = new client_1.PrismaClient();
+const io = new socket_io_1.Server(server, {
     cors: {
-        // origin: '', // Allow only your front-end to connect
-        origin: '*', // Allow only your front-end to connect,
-        methods: ['GET', 'POST'],
+        origin: "http://localhost:3000", // Your frontend URL
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
-// Middleware
-app.use((0, cors_1.default)());
-app.use(body_parser_1.default.json());
-app.use(body_parser_1.default.urlencoded({ extended: false }));
-app.get('/', (req, res) => {
-    return res.json({
-        msg: 'hello fucking new world'
-    });
+// Initialize services
+const notificationService = new NotificationService_1.default(io);
+const socketAuthService = new SocketAuthService_1.SocketAuthService(prisma);
+const socketEventHandler = new SocketEventHandler_1.SocketEventHandler(notificationService);
+// Socket.IO Authentication
+io.use((socket, next) => socketAuthService.authenticate(socket, next));
+io.on("connection", (socket) => {
+    socketEventHandler.handleConnection(socket);
+    socket.on("get-notifications", (callback) => socketEventHandler.handleGetNotifications(socket, callback));
+    socket.on("mark-as-read", (notificationId, callback) => socketEventHandler.handleMarkAsRead(socket, notificationId, callback));
+    socket.on("mark-all-read", (callback) => socketEventHandler.handleMarkAllAsRead(socket, callback));
+    socket.on("send-admin-notification", (data) => socketEventHandler.handleAdminNotification(socket, data));
+    // Issue-related notifications
+    socket.on("issue-created", (data) => socketEventHandler.handleIssueCreationNotification(data));
+    socket.on("issue-approved", (data) => socketEventHandler.handleIssueApprovalNotification(data));
+    // Add other issue-related events...
+    socket.on("disconnect", () => socketEventHandler.handleDisconnect(socket));
 });
-(0, socket_1.socketInit)(io);
-// Start the server
-server.listen(port, () => {
-    console.log(`App running on port ${port}`);
+// Prisma graceful shutdown
+process.on('SIGINT', () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('Shutting down server...');
+    yield prisma.$disconnect();
+    process.exit(0);
+}));
+// Start Server
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
