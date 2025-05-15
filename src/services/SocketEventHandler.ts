@@ -1,24 +1,50 @@
-import { Socket } from "socket.io";
+import { Socket,Server } from "socket.io";
 import NotificationService from "./NotificationService";
 
 export class SocketEventHandler {
-    constructor(private notificationService: NotificationService) { }
+
+     private connectedUsers: Set<number> = new Set();
+    private io: Server;
+
+    constructor(private notificationService: NotificationService, io: Server) {
+        this.io = io;
+    }
 
     async handleConnection(socket: Socket) {
         const user = socket.data.user;
+        if (!user?.id) return;
 
-        // Join appropriate rooms
+        this.connectedUsers.add(user.id);
+        
+        // Join rooms
         socket.join(`user-${user.id}`);
-        if (user.role === 1) socket.join("admin-room");
-        if (user.role === 2) socket.join("developer-room");
+        // if (user.role === 1) socket.join("admin-room");
+        // if (user.role === 2) socket.join("developer-room");
 
+        // Broadcast updated user list
+        this.broadcastConnectedUsers();
         console.log(`User connected: ${user.name}`);
     }
 
     async handleDisconnect(socket: Socket) {
-        console.log(`User disconnected: ${socket.data.user.name}`);
+        const user = socket.data.user;
+        if (user?.id) {
+            this.connectedUsers.delete(user.id);
+            this.broadcastConnectedUsers();
+        }
+        console.log(`User disconnected: ${user?.name || 'Unknown'}`);
     }
 
+    private broadcastConnectedUsers() {
+        const connectedUserIds = Array.from(this.connectedUsers);
+        this.io.emit('update-connected-users', connectedUserIds);
+    }
+
+    handleGetConnectedUsers(socket: Socket, callback: Function) {
+        callback(Array.from(this.connectedUsers));
+    }
+
+   
     async handleGetNotifications(socket: Socket, callback: Function) {
         try {
             const notifications = await this.notificationService.getUserNotifications(socket.data.user.id);
@@ -75,5 +101,10 @@ export class SocketEventHandler {
         // Implementation for approved issue notification
     }
 
+  
+    // updateConnectedUsers(userIds: number[]) {
+    //     this.connectedUsers = new Set(userIds);
+    //     console.log(this.connectedUsers)
+    // }
     // ... other notification handlers
 }

@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/@prisma/client"
+
 }
 
 datasource db {
@@ -51,9 +51,11 @@ model User {
   issueCommands         IssueCommand[]
   assignedIssues        Issue[]        @relation("UserAssignedIssues")
   issues                Issue[]        @relation("UserIssues")
+  messages              Message[]      // Changed from messages[] to Message[]
   sentNotifications     Notification[] @relation("NotificationSender")
   receivedNotifications Notification[] @relation("NotificationReceiver")
   sessions              Session[]
+  userChats             UserChat[]     // Changed from user_chats[] to UserChat[]
 
   @@map("users")
 }
@@ -91,10 +93,11 @@ model Issue {
 }
 
 model IssueImage {
-  id       Int    @id @default(autoincrement())
-  issueId  Int
-  imageUrl String
-  issue    Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  id          Int          @id @default(autoincrement())
+  issueId     Int
+  imageUrl    String
+  storageType StorageType? @default(CLOUDINARY)
+  issue       Issue        @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
   @@map("issue_images")
@@ -137,6 +140,50 @@ model IssueCommand {
   @@map("issue_commands")
 }
 
+model Chat {
+  id         String      @id
+  name       String
+  type       ChatType    @default(PRIVATE)
+  avatar     String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime
+  messages   Message[]
+  userChats  UserChat[]
+
+  @@map("chats")
+}
+
+
+
+model Message {
+  id        String   @id
+  content   String
+  chatId    String
+  senderId  String
+  timestamp DateTime @default(now())
+  read      Boolean  @default(false)
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+
+model UserChat {
+  id          String    @id
+  userId      String
+  chatId      String
+  lastReadAt  DateTime?
+  unreadCount Int       @default(0)
+  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chatId])
+  @@map("user_chats")
+}
+
 enum IssueStatus {
   OPEN
   IN_PROGRESS
@@ -148,4 +195,15 @@ enum IssuePriority {
   medium
   low
   lowest
+}
+
+enum ChatType {
+  PRIVATE
+  GROUP
+}
+
+enum StorageType {
+  CLOUDINARY
+  S3
+  LOCAL
 }

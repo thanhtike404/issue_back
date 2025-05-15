@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
@@ -15,6 +16,11 @@ const UNSLASH_IMAGES = {
         login: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=600&h=400&fit=crop',
         profile: 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=600&h=400&fit=crop',
         darkMode: 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=600&h=400&fit=crop'
+    },
+    chats: {
+        devTeam: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=200&h=200&fit=crop',
+        weekendTrip: 'https://images.unsplash.com/photo-1527631746610-bca00a040d60?w=200&h=200&fit=crop',
+        private: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&h=200&fit=crop'
     }
 };
 
@@ -46,18 +52,29 @@ async function main() {
             issue3Id: issue3.id
         });
 
+        // Create chats and messages
+        console.log('💬 Creating chats and messages...');
+        await createChatData({
+            adminId: admin.id,
+            developer1Id: developer1.id,
+            developer2Id: developer2.id,
+            regularUserId: regularUser.id
+        });
+
         console.log('✅ Database seeded successfully!');
     } catch (error) {
         console.error('❌ Seed failed:', error);
-        process.exit(1);
+        // Not using process.exit, just disconnect and let the script end naturally
     } finally {
         await prisma.$disconnect();
     }
 }
 
-// Database operations
 async function clearDatabase() {
     await prisma.$transaction([
+        prisma.message.deleteMany(),
+        prisma.userChat.deleteMany(),
+        prisma.chat.deleteMany(),
         prisma.notification.deleteMany(),
         prisma.issueCommand.deleteMany(),
         prisma.issueImage.deleteMany(),
@@ -170,17 +187,17 @@ async function createRelatedData(ids: {
                 {
                     issueId: ids.issue1Id,
                     imageUrl: UNSLASH_IMAGES.issues.login,
-
+                    storageType: 'CLOUDINARY'
                 },
                 {
                     issueId: ids.issue2Id,
                     imageUrl: UNSLASH_IMAGES.issues.profile,
-
+                    storageType: 'CLOUDINARY'
                 },
                 {
                     issueId: ids.issue3Id,
                     imageUrl: UNSLASH_IMAGES.issues.darkMode,
-
+                    storageType: 'CLOUDINARY'
                 }
             ],
         }),
@@ -258,7 +275,6 @@ async function createRelatedData(ids: {
                     message: 'You have been assigned to fix: Login page authentication failure',
                     type: 'assignment',
                     title: 'New issue assigned',
-
                     userId: ids.developer1Id,
                     senderId: ids.adminId,
                     issueId: ids.issue1Id,
@@ -267,7 +283,6 @@ async function createRelatedData(ids: {
                 },
                 {
                     title: 'New issue assigned',
-
                     message: 'You have been assigned to fix: Mobile profile layout issues',
                     type: 'assignment',
                     userId: ids.developer2Id,
@@ -277,8 +292,7 @@ async function createRelatedData(ids: {
                     read: true
                 },
                 {
-                    title: 'New issue assigned',
-
+                    title: 'New comment',
                     message: 'Casey Brown commented on your issue',
                     type: 'comment',
                     userId: ids.developer1Id,
@@ -288,8 +302,7 @@ async function createRelatedData(ids: {
                     read: false
                 },
                 {
-                    title: 'New issue assigned',
-
+                    title: 'System notification',
                     message: 'System maintenance scheduled for tonight at 2AM UTC',
                     type: 'system',
                     userId: ids.adminId,
@@ -300,6 +313,193 @@ async function createRelatedData(ids: {
             ],
         })
     ]);
+}
+
+async function createChatData(ids: {
+    adminId: string;
+    developer1Id: string;
+    developer2Id: string;
+    regularUserId: string;
+}) {
+    // Create private chat between admin and regular user
+    const privateChat = await prisma.chat.create({
+        data: {
+            id: 'chat1', // Adding explicit ID to avoid auto-generation issues
+            name: 'Alex & Casey',
+            type: 'PRIVATE',
+            avatar: UNSLASH_IMAGES.chats.private,
+            updatedAt: new Date(),
+            userChats: {
+                create: [
+                    { 
+                        id: 'uc1',
+                        userId: ids.adminId 
+                    },
+                    { 
+                        id: 'uc2',
+                        userId: ids.regularUserId, 
+                        lastReadAt: new Date(Date.now() - 3600000) 
+                    }
+                ]
+            },
+            messages: {
+                create: [
+                    {
+                        id: 'msg1',
+                        content: 'Hey Casey, can you check the latest issue report?',
+                        senderId: ids.adminId,
+                        timestamp: new Date(Date.now() - 7200000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg2',
+                        content: 'Sure Alex, I just looked at it. The login issue seems serious.',
+                        senderId: ids.regularUserId,
+                        timestamp: new Date(Date.now() - 7000000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg3',
+                        content: 'I assigned Sam to work on it. Should be fixed soon.',
+                        senderId: ids.adminId,
+                        timestamp: new Date(Date.now() - 6900000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg4',
+                        content: 'Great! Our users will be relieved.',
+                        senderId: ids.regularUserId,
+                        timestamp: new Date(Date.now() - 6800000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg5',
+                        content: 'Let me know if you find anything else concerning.',
+                        senderId: ids.adminId,
+                        timestamp: new Date(Date.now() - 6700000),
+                        read: false,
+                    },
+                ],
+            },
+        },
+    });
+
+    // Create Dev Team group chat
+    const devTeamChat = await prisma.chat.create({
+        data: {
+            id: 'chat2', // Adding explicit ID
+            name: 'Dev Team',
+            type: 'GROUP',
+            avatar: UNSLASH_IMAGES.chats.devTeam,
+            updatedAt: new Date(),
+            userChats: {
+                create: [
+                    { id: 'uc3', userId: ids.adminId },
+                    { id: 'uc4', userId: ids.developer1Id },
+                    { id: 'uc5', userId: ids.developer2Id }
+                ]
+            },
+            messages: {
+                create: [
+                    {
+                        id: 'msg6',
+                        content: 'Morning team! Any updates on the login issue?',
+                        senderId: ids.adminId,
+                        timestamp: new Date(Date.now() - 600000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg7',
+                        content: 'Working on it now. Found the bug in auth middleware.',
+                        senderId: ids.developer1Id,
+                        timestamp: new Date(Date.now() - 550000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg8',
+                        content: 'I can help with testing once you push the fix.',
+                        senderId: ids.developer2Id,
+                        timestamp: new Date(Date.now() - 500000),
+                        read: true,
+                    },
+                ],
+            },
+        },
+    });
+
+    // Create Weekend Trip group chat
+    const weekendTripChat = await prisma.chat.create({
+        data: {
+            id: 'chat3', // Adding explicit ID
+            name: 'Weekend Trip',
+            type: 'GROUP',
+            avatar: UNSLASH_IMAGES.chats.weekendTrip,
+            updatedAt: new Date(),
+            userChats: {
+                create: [
+                    { id: 'uc6', userId: ids.adminId },
+                    { id: 'uc7', userId: ids.developer1Id },
+                    { id: 'uc8', userId: ids.developer2Id },
+                    { id: 'uc9', userId: ids.regularUserId }
+                ]
+            },
+            messages: {
+                create: [
+                    {
+                        id: 'msg9',
+                        content: 'Who\'s ready for the team retreat this weekend?',
+                        senderId: ids.adminId,
+                        timestamp: new Date(Date.now() - 1200000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg10',
+                        content: 'I am! Been looking forward to this.',
+                        senderId: ids.developer2Id,
+                        timestamp: new Date(Date.now() - 1100000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg11',
+                        content: 'I\'ll bring some board games.',
+                        senderId: ids.regularUserId,
+                        timestamp: new Date(Date.now() - 1050000),
+                        read: true,
+                    },
+                    {
+                        id: 'msg12',
+                        content: 'Don\'t forget to pack warm clothes - forecast says it might rain.',
+                        senderId: ids.developer1Id,
+                        timestamp: new Date(Date.now() - 1000000),
+                        read: false,
+                    },
+                ],
+            },
+        },
+    });
+
+    // Update unread counts for demonstration
+    await prisma.userChat.updateMany({
+        where: {
+            chatId: privateChat.id,
+            userId: ids.adminId
+        },
+        data: {
+            unreadCount: 1
+        }
+    });
+
+    await prisma.userChat.updateMany({
+        where: {
+            chatId: weekendTripChat.id,
+            userId: ids.adminId
+        },
+        data: {
+            unreadCount: 1
+        }
+    });
+
+    return { privateChat, devTeamChat, weekendTripChat };
 }
 
 main();

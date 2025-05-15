@@ -5,13 +5,13 @@ import { Server } from "socket.io";
 import { SocketAuthService } from "./services/SocketAuthService";
 import { SocketEventHandler } from "./services/SocketEventHandler";
 import NotificationService from "./services/NotificationService";
-
+import ChatService from "./services/chatService";
 const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
 const io = new Server(server, {
   cors: {
-    origin: "https://issue-tracker-six-mu.vercel.app", // Your frontend URL
+    origin: "http://localhost:3000", // Your frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
@@ -21,7 +21,9 @@ const io = new Server(server, {
 async function testDatabaseConnection() {
   try {
     const user = await prisma.user.findFirst(); // Adjust with any model you have in your schema
+ 
     console.log("Database connection is successful. Test user:", user);
+    
   } catch (error) {
     console.error("Error connecting to the database:", error);
   }
@@ -53,14 +55,23 @@ app.get("/notifications", async (req, res) => {
 // Initialize services
 const notificationService = new NotificationService(io);
 const socketAuthService = new SocketAuthService(prisma);
-const socketEventHandler = new SocketEventHandler(notificationService);
+const chatService=new ChatService(io);
+
+const socketEventHandler = new SocketEventHandler(notificationService,io);
 
 // Socket.IO Authentication
 io.use((socket, next) => socketAuthService.authenticate(socket, next));
 
-io.on("connection", (socket) => {
-  socketEventHandler.handleConnection(socket);
 
+
+io.on("connection", (socket) => {
+  
+
+  socketEventHandler.handleConnection(socket);
+  socket.on('get-user-chat',(data,callback)=>chatService.getUserChats(data,callback));
+
+  socket.on("get-connected-users", (callback) =>
+     socketEventHandler.handleGetConnectedUsers(socket, callback));
   socket.on("get-notifications", (callback) =>
     socketEventHandler.handleGetNotifications(socket, callback));
 
@@ -73,7 +84,6 @@ io.on("connection", (socket) => {
   socket.on("send-admin-notification", (data) =>
     socketEventHandler.handleAdminNotification(socket, data));
 
-  // Issue-related notifications
   socket.on("issue-created", (data) =>
     socketEventHandler.handleIssueCreationNotification(data));
 
