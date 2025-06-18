@@ -57,57 +57,55 @@ app.get("/notifications", async (req, res) => {
   }
 });
 app.post(
-  '/api/webhooks/clerk', // Should match your Clerk webhook URL exactly
-  express.raw({ type: 'application/json' }), // Must use raw body parser
+  '/api/webhooks/clerk',
+  express.raw({ type: 'application/json' }),
   // @ts-ignore
   async (req: Request, res: Response) => {
-    const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET; // Recommended naming
-    
+    const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+
     if (!WEBHOOK_SECRET) {
-      console.error('❌ WEBHOOK_SECRET is missing');
-      return res.status(500).json({ error: 'Server configuration error' });
+      return res.status(500).json({ error: 'Webhook secret not configured' });
     }
 
-    // Get headers
-    const svixId = req.headers['svix-id'];
-    const svixTimestamp = req.headers['svix-timestamp'];
-    const svixSignature = req.headers['svix-signature'];
-
-    if (!svixId || !svixTimestamp || !svixSignature) {
-      return res.status(400).json({ error: 'Missing required headers' });
-    }
-
-    // Verify webhook
     try {
+      // Verify webhook signature
       const wh = new Webhook(WEBHOOK_SECRET);
       const payload = req.body.toString();
+      const headers = req.headers;
       
       const evt = wh.verify(payload, {
-        'svix-id': svixId as string,
-        'svix-timestamp': svixTimestamp as string,
-        'svix-signature': svixSignature as string,
+        'svix-id': headers['svix-id'] as string,
+        'svix-timestamp': headers['svix-timestamp'] as string,
+        'svix-signature': headers['svix-signature'] as string,
       }) as WebhookEvent;
 
-      // Handle the event
-      switch (evt.type) {
-        case 'user.created':
-          console.log('New user:', evt.data);
-          // Add your user creation logic here
-          break;
-        case 'user.updated':
-          // Handle updates
-          break;
-        case 'user.deleted':
-          // Handle deletions
-          break;
-        default:
-          console.log(`Unhandled event type: ${evt.type}`);
+      // Handle user.created event
+      if (evt.type === 'user.created') {
+        const userData = evt.data;
+        const primaryEmail = userData.email_addresses.find(
+          (email: any) => email.id === userData.primary_email_address_id
+        );
+
+        // Create user in your database
+        await prisma.user.create({
+          data: {
+            clerkId: userData.id,
+            email: primaryEmail?.email_address,
+            name: `${userData.first_name} ${userData.last_name}`.trim(),
+            image: userData.image_url,
+            // Set default role (0) and empty password since auth is handled by Clerk
+            role: 0,
+            password: '',
+          }
+        });
+
+        console.log(`Created user ${userData.id} in database`);
       }
 
       return res.status(200).json({ success: true });
 
     } catch (err) {
-      console.error('Webhook verification failed:', err);
+      console.error('Webhook error:', err);
       return res.status(400).json({ error: 'Invalid webhook' });
     }
   }
