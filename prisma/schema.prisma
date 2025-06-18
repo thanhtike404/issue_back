@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-
 }
 
 datasource db {
@@ -47,15 +46,16 @@ model User {
   image                 String?
   role                  Int            @default(0)
   password              String?
+  clerkId               String?        @unique
   accounts              Account[]
   issueCommands         IssueCommand[]
   assignedIssues        Issue[]        @relation("UserAssignedIssues")
   issues                Issue[]        @relation("UserIssues")
-  messages              Message[]      // Changed from messages[] to Message[]
+  messages              Message[]
   sentNotifications     Notification[] @relation("NotificationSender")
   receivedNotifications Notification[] @relation("NotificationReceiver")
   sessions              Session[]
-  userChats             UserChat[]     // Changed from user_chats[] to UserChat[]
+  userChats             UserChat[]
 
   @@map("users")
 }
@@ -141,19 +141,17 @@ model IssueCommand {
 }
 
 model Chat {
-  id         String      @id
-  name       String
-  type       ChatType    @default(PRIVATE)
-  avatar     String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime
-  messages   Message[]
-  userChats  UserChat[]
+  id        String     @id
+  name      String
+  type      ChatType   @default(PRIVATE)
+  avatar    String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  messages  Message[]
+  userChats UserChat[]
 
   @@map("chats")
 }
-
-
 
 model Message {
   id        String   @id
@@ -169,7 +167,6 @@ model Message {
   @@index([senderId])
   @@map("messages")
 }
-
 
 model UserChat {
   id          String    @id
