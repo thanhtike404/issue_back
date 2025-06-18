@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "build": "tsc",
     "start": "node dist/app.js",
-    "dev": "nodemon src/app.ts"
+    "dev": "nodemon src/app.ts",
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.0",
