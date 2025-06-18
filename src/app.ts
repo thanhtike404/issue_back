@@ -57,48 +57,59 @@ app.get("/notifications", async (req, res) => {
   }
 });
 app.post(
-  '/api/webhooks/user/registered',
-  express.raw({ type: 'application/json' }),
+  '/api/webhooks/clerk', // Should match your Clerk webhook URL exactly
+  express.raw({ type: 'application/json' }), // Must use raw body parser
   // @ts-ignore
-  async (req:Request,res:Response) => {
-    const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+  async (req: Request, res: Response) => {
+    const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET; // Recommended naming
+    
     if (!WEBHOOK_SECRET) {
-      console.error('❌ WEBHOOK_SECRET is not set in environment variables.');
-      return res.status(500).send('Internal Server Error: Webhook secret not configured.');
+      console.error('❌ WEBHOOK_SECRET is missing');
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Verification logic using Svix (remains exactly the same)
-    const headers = req.headers;
-    const svix_id = headers['svix-id'] as string;
-    const svix_timestamp = headers['svix-timestamp'] as string;
-    const svix_signature = headers['svix-signature'] as string;
+    // Get headers
+    const svixId = req.headers['svix-id'];
+    const svixTimestamp = req.headers['svix-timestamp'];
+    const svixSignature = req.headers['svix-signature'];
 
-    if (!svix_id || !svix_timestamp || !svix_signature) {
-      return res.status(400).json({ success: false, message: 'Error: Missing Svix headers.' });
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return res.status(400).json({ error: 'Missing required headers' });
     }
 
-    const body = req.body.toString();
-    const wh = new Webhook(WEBHOOK_SECRET);
-    let evt: WebhookEvent; // This type now comes from the correct package
-
+    // Verify webhook
     try {
-      evt = wh.verify(body, {
-        'svix-id': svix_id,
-        'svix-timestamp': svix_timestamp,
-        'svix-signature': svix_signature,
+      const wh = new Webhook(WEBHOOK_SECRET);
+      const payload = req.body.toString();
+      
+      const evt = wh.verify(payload, {
+        'svix-id': svixId as string,
+        'svix-timestamp': svixTimestamp as string,
+        'svix-signature': svixSignature as string,
       }) as WebhookEvent;
-    } catch (err: any) {
-      console.error('❌ Error verifying webhook signature:', err.message);
-      return res.status(400).json({ success: false, message: 'Error: Invalid signature.' });
-    }
 
-    // Processing logic (remains exactly the same)
-    const eventType = evt.type;
-    if (eventType === 'user.created') {
-      // ... your logic to create a notification
-    }
+      // Handle the event
+      switch (evt.type) {
+        case 'user.created':
+          console.log('New user:', evt.data);
+          // Add your user creation logic here
+          break;
+        case 'user.updated':
+          // Handle updates
+          break;
+        case 'user.deleted':
+          // Handle deletions
+          break;
+        default:
+          console.log(`Unhandled event type: ${evt.type}`);
+      }
 
-    return res.status(200).json({ success: true, message: 'Webhook processed.' });
+      return res.status(200).json({ success: true });
+
+    } catch (err) {
+      console.error('Webhook verification failed:', err);
+      return res.status(400).json({ error: 'Invalid webhook' });
+    }
   }
 );
 // Initialize services
