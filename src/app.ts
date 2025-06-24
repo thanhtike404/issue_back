@@ -16,7 +16,7 @@ const server = http.createServer(app);
 const prisma = new PrismaClient();
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Your frontend URL
+    origin: "*", // Your frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
@@ -126,8 +126,19 @@ io.on("connection", (socket) => {
   
 
   socketEventHandler.handleConnection(socket);
-  socket.on('get-user-chat',(data,callback)=>chatService.getUserChats(data,callback));
+  
+  // Chat/Messaging events
+  socket.on('get-user-chat', (data, callback) => chatService.getUserChats(data, callback));
+  socket.on('send-message', (data, callback) => chatService.sendMessage(socket, data, callback));
+  socket.on('create-chat', (data, callback) => chatService.createChat(socket, data, callback));
+  socket.on('get-chat-messages', (data, callback) => chatService.getChatMessages(socket, data, callback));
+  socket.on('update-message', (data, callback) => chatService.updateMessage(socket, data, callback));
+  socket.on('delete-message', (data, callback) => chatService.deleteMessage(socket, data, callback));
+  socket.on('get-unread-count', (callback) => chatService.getUnreadCount(socket, callback));
+  socket.on('join-chat', (data, callback) => chatService.joinChat(socket, data, callback));
+  socket.on('leave-chat', (data, callback) => chatService.leaveChat(socket, data, callback));
 
+  // Notification events
   socket.on("get-connected-users", (callback) =>
      socketEventHandler.handleGetConnectedUsers(socket, callback));
   socket.on("get-notifications", (callback) =>
