@@ -10,30 +10,40 @@ export class SocketEventHandler {
         this.io = io;
     }
 
-    async handleConnection(socket: Socket) {
-        const user = socket.data.user;
-        if (!user?.id) return;
+   async handleConnection(socket: Socket) {
+    const user = socket.data.user;
+    if (!user?.id) return;
 
-        this.connectedUsers.add(user.id);
-        
-        // Join rooms
-        socket.join(`user-${user.id}`);
-        // if (user.role === 1) socket.join("admin-room");
-        // if (user.role === 2) socket.join("developer-room");
+    this.connectedUsers.add(user.id);
+    socket.join(`user-${user.id}`);
 
-        // Broadcast updated user list
-        this.broadcastConnectedUsers();
-        console.log(`User connected: ${user.name}`);
-    }
+    // 🔥 Notify all clients that a user has connected
+    this.io.emit("user-connected", {
+        id: user.id,
+        name: user.name,
+    });
 
-    async handleDisconnect(socket: Socket) {
-        const user = socket.data.user;
-        if (user?.id) {
-            this.connectedUsers.delete(user.id);
-            this.broadcastConnectedUsers();
-        }
-        console.log(`User disconnected: ${user?.name || 'Unknown'}`);
-    }
+    // Broadcast full list
+    this.broadcastConnectedUsers();
+
+    console.log(`User connected: ${user.name}`);
+}
+   async handleDisconnect(socket: Socket) {
+    const user = socket.data.user;
+    if (!user?.id) return;
+
+    this.connectedUsers.delete(user.id);
+
+    // 🔥 Notify all clients that a user has disconnected
+    this.io.emit("user-disconnected", {
+        id: user.id,
+        name: user.name,
+    });
+
+    this.broadcastConnectedUsers();
+
+    console.log(`User disconnected: ${user.name}`);
+}
 
     private broadcastConnectedUsers() {
         const connectedUserIds = Array.from(this.connectedUsers);
@@ -100,7 +110,9 @@ export class SocketEventHandler {
     async handleIssueApprovalNotification(data: any) {
         // Implementation for approved issue notification
     }
-
+    async getconnectedUsers() {
+        return Array.from(this.connectedUsers);
+    }
   
     // updateConnectedUsers(userIds: number[]) {
     //     this.connectedUsers = new Set(userIds);

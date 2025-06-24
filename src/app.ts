@@ -8,36 +8,39 @@ import { SocketEventHandler } from "./services/SocketEventHandler";
 import NotificationService from "./services/NotificationService";
 import ChatService from "./services/chatService";
 import { Webhook } from 'svix';
-// import { Request } from "express";
-// CORRECT IMPORT for a Node.js / Express backend
+
 import { WebhookEvent } from '@clerk/clerk-sdk-node';
 const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
 const io = new Server(server, {
   cors: {
-    origin: "*", // Your frontend URL
+    origin: "*", 
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
 });
+const notificationService = new NotificationService(io);
+const socketAuthService = new SocketAuthService(prisma);
+const chatService=new ChatService(io);
 
-// Test the database connection
-async function testDatabaseConnection() {
-  try {
-    const user = await prisma.user.findFirst(); // Adjust with any model you have in your schema
+const socketEventHandler = new SocketEventHandler(notificationService,io);
+
+// async function testDatabaseConnection() {
+//   try {
+//     const user = await prisma.user.findFirst(); // Adjust with any model you have in your schema
  
-    console.log("Database connection is successful. Test user:", user);
+//     console.log("Database connection is successful. Test user:", user);
     
-  } catch (error) {
-    console.error("Error connecting to the database:", error);
-  }
-}
+//   } catch (error) {
+//     console.error("Error connecting to the database:", error);
+//   }
+// }
 
-testDatabaseConnection();
+// testDatabaseConnection();
 
 // Log Prisma queries with proper typing
-//@ts-ignore
+//@ts-ignoreuseConnectedUserStore
 prisma.$on('query', (event: Prisma.QueryEvent) => {
   console.log('Query:', event.query);
   console.log('Params:', event.params);
@@ -93,7 +96,7 @@ app.post(
             email: primaryEmail?.email_address,
             name: `${userData.first_name} ${userData.last_name}`.trim(),
             image: userData.image_url,
-            // Set default role (0) and empty password since auth is handled by Clerk
+           
             role: 0,
             password: '',
           }
@@ -110,14 +113,9 @@ app.post(
     }
   }
 );
-// Initialize services
-const notificationService = new NotificationService(io);
-const socketAuthService = new SocketAuthService(prisma);
-const chatService=new ChatService(io);
 
-const socketEventHandler = new SocketEventHandler(notificationService,io);
 
-// Socket.IO Authentication
+
 io.use((socket, next) => socketAuthService.authenticate(socket, next));
 
 
@@ -126,8 +124,14 @@ io.on("connection", (socket) => {
   
 
   socketEventHandler.handleConnection(socket);
+
+
+
+  socketEventHandler.handleGetConnectedUsers(socket, (users:any) => {
+    socket.emit("update-connected-users", users);
+  });
   
-  // Chat/Messaging events
+
   socket.on('get-user-chat', (data, callback) => chatService.getUserChats(data, callback));
   socket.on('send-message', (data, callback) => chatService.sendMessage(socket, data, callback));
   socket.on('create-chat', (data, callback) => chatService.createChat(socket, data, callback));
@@ -138,7 +142,7 @@ io.on("connection", (socket) => {
   socket.on('join-chat', (data, callback) => chatService.joinChat(socket, data, callback));
   socket.on('leave-chat', (data, callback) => chatService.leaveChat(socket, data, callback));
 
-  // Notification events
+
   socket.on("get-connected-users", (callback) =>
      socketEventHandler.handleGetConnectedUsers(socket, callback));
   socket.on("get-notifications", (callback) =>
